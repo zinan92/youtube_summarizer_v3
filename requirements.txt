@@ -2,3 +2,6 @@ yt-dlp==2025.7.21
 openai-whisper==20231117
 openai>=1.0.0
 python-dotenv
+google-api-python-client>=2.0.0
+aiohttp>=3.8.0
+tenacity>=8.0.0

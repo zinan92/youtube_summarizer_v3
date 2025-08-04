@@ -1,18 +1,56 @@
 # YouTube Transcript Processing Flow Diagram
 
-## 🎯 Main Entry Points
+## 🔗 System Overview
 
-**Transcript Generation:** `youtube_transcript.py`
+This system uses a **modular two-stage pipeline** that provides maximum flexibility and reliability:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           COMPLETE PIPELINE                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  STAGE 1: TRANSCRIPT GENERATION (youtube_transcript.py)                    │
+│  YouTube URL → Audio Download → Whisper Transcription → Raw Transcript     │
+└─────────────────────────┬───────────────────────────────────────────────────┘
+                          │
+                          ▼ {title}_{creator}_transcript.txt
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  STAGE 2: AI PROCESSING (process_transcript.py) [OPTIONAL]                 │
+│  Raw Transcript → OpenAI Processing → Structured Content → Final Output    │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+## 🤔 Why Two Separate Flows?
+
+**Independence & Flexibility:**
+- **Use transcription alone** for basic text extraction
+- **Mix and match** - process any transcript file, not just from YouTube
+- **Different failure modes** - transcription rarely fails, AI processing may timeout
+- **Reprocessing capability** - retry AI processing without re-downloading
+
+**Modularity Benefits:**
+- **File-based handoff** enables inspection and manual editing between stages  
+- **Different timeouts** - transcription (5-30min) vs AI processing (1-10min)
+- **Cost management** - free transcription, paid AI processing
+- **Batch processing** - transcribe multiple videos, then process in bulk
+
+## 🎯 Entry Points
+
+### Stage 1: Transcript Generation
 ```bash
 python youtube_transcript.py <youtube_url>
 ```
+*Output: `{title}_{creator}_transcript.txt`*
 
-**AI Processing:** `process_transcript.py`
+### Stage 2: AI Processing (Optional)
 ```bash
 python process_transcript.py "Video Title_Creator_transcript.txt"
 ```
+*Output: `{title}_{creator}_processed.txt`*
 
-## 📊 Audio-Only Transcription Flow with Progress Tracking
+## 📊 Stage 1: Audio-Only Transcription Flow (youtube_transcript.py)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -21,9 +59,11 @@ python process_transcript.py "Video Title_Creator_transcript.txt"
                           │
                           ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  [0-14.3%] 🔍 Fetching video info                             │
+│  [0-14.3%] 🔍 Fetching enhanced video metadata               │
 │  ├─ Extract video ID from URL formats                        │
-│  ├─ Get video metadata (title, creator)                      │
+│  ├─ Try YouTube Data API v3 (comprehensive metadata)        │
+│  ├─ Fallback to yt-dlp (basic metadata)                     │
+│  ├─ Collect: title, creator, views, likes, subscribers      │
 │  └─ Progress tracking: 0% → 100%                             │
 └─────────────────────────┬───────────────────────────────────────┘
                           │
@@ -56,9 +96,10 @@ python process_transcript.py "Video Title_Creator_transcript.txt"
                           ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │  [57.1-71.4%] 🧠 Determining processing strategy             │
+│  ├─ Create metadata header with video information           │
 │  ├─ Save as {title}_{creator}_transcript.txt                 │
-│  ├─ File size and character count display                    │
-│  └─ AI processing suggestion                                 │
+│  ├─ Include: views, likes, subscribers, duration, tags      │
+│  └─ AI processing suggestion with enhanced context          │
 └─────────────────────────┬───────────────────────────────────────┘
                           │
                           ▼
@@ -76,7 +117,7 @@ python process_transcript.py "Video Title_Creator_transcript.txt"
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## 🤖 AI Processing Flow with Progress Tracking (process_transcript.py)
+## 🤖 Stage 2: AI Processing Flow (process_transcript.py)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -95,8 +136,9 @@ python process_transcript.py "Video Title_Creator_transcript.txt"
 ┌─────────────────────────────────────────────────────────────────┐
 │  [20-40%] 📄 Loading transcript                               │
 │  ├─ 0%: Start loading transcript file                        │
-│  ├─ 50%: File reading in progress                            │
-│  └─ 100%: Transcript content loaded and verified             │
+│  ├─ 50%: File reading and metadata extraction               │
+│  ├─ Extract video metadata from header                      │
+│  └─ 100%: Transcript content and metadata loaded            │
 └─────────────────────────┬───────────────────────────────────────┘
                           │
                           ▼
@@ -110,8 +152,8 @@ python process_transcript.py "Video Title_Creator_transcript.txt"
                           ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │  DECISION: Size Check                                         │
-│  ├─ < 40K chars: Normal Processing                            │
-│  └─ > 40K chars: Chunking Required                            │
+│  ├─ < 20K chars: Normal Processing                            │
+│  └─ > 20K chars: Chunking Required                            │
 └─────────┬─────────────────────────────────────┬───────────────┘
           │                                     │
           │ (Small/Medium)                      │ (Large)
@@ -137,9 +179,11 @@ python process_transcript.py "Video Title_Creator_transcript.txt"
                                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │  [80-100%] 💾 Saving processed file                           │
+│  ├─ Create enhanced metadata header with preservation stats │
 │  ├─ 50%: Writing to {title}_{creator}_processed.txt          │
+│  ├─ Include original video metadata + processing statistics │
 │  ├─ 90%: File verification and size calculation              │
-│  └─ 100%: Success message with final statistics              │
+│  └─ 100%: Success message with final preservation rate      │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -244,7 +288,7 @@ OPENAI_API_KEY=your_api_key_here
 OPENAI_MODEL=gpt-4o-mini
 
 # Chunking Settings for Large Files
-CHUNKING_THRESHOLD=40000    # Start chunking at 40K chars
+CHUNKING_THRESHOLD=20000    # Start chunking at 20K chars
 CHUNK_SIZE=35000           # Size per chunk
 CHUNK_OVERLAP=500          # Context overlap
 ```
@@ -262,8 +306,8 @@ CHUNK_OVERLAP=500          # Context overlap
 - **Intelligent merging** removes duplicate headers and maintains flow
 
 ### Size Thresholds:
-- **< 40K chars**: Normal single-pass processing
-- **≥ 40K chars**: Automatic chunking with progress tracking
+- **< 20K chars**: Normal single-pass processing
+- **≥ 20K chars**: Automatic chunking with progress tracking
 - **Configurable**: Adjust thresholds via environment variables
 
 The system provides **maximum flexibility** and **reliability** through intelligent processing that adapts to content size.

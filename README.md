@@ -6,8 +6,9 @@ A simple and reliable tool to download YouTube video transcripts by downloading 
 
 - **🎵 Audio-Based Transcription**: Downloads audio and creates transcripts using Whisper AI
 - **📊 Real-Time Progress Tracking**: Visual progress indicators for all processing steps
-- **🔧 Simple Setup**: Just two dependencies, no API keys required for transcription
-- **📝 Universal Coverage**: Works with any YouTube video
+- **📈 Rich Metadata Collection**: Comprehensive video statistics, channel info, and engagement metrics
+- **🔧 Flexible Setup**: Basic transcription needs no API keys, enhanced metadata uses YouTube Data API v3
+- **📝 Universal Coverage**: Works with any YouTube video with intelligent fallback systems
 - **⚡ Automatic Cleanup**: Removes temporary files automatically
 - **🛡️ Reliable**: Single method approach with completion verification
 
@@ -18,7 +19,17 @@ A simple and reliable tool to download YouTube video transcripts by downloading 
 pip install -r requirements.txt
 ```
 
-### 2. Download Transcripts
+### 2. Basic Setup (Optional - for enhanced metadata)
+```bash
+# Copy environment template
+cp .env.example .env
+
+# Add your YouTube Data API key (optional)
+# Get API key from: https://console.developers.google.com/
+# YOUTUBE_API_KEY=your_api_key_here
+```
+
+### 3. Download Transcripts
 ```bash
 python youtube_transcript.py https://www.youtube.com/watch?v=VIDEO_ID
 ```
@@ -38,6 +49,43 @@ python youtube_transcript.py https://www.youtube.com/watch?v=VIDEO_ID
 ### Success Rate:
 - **Overall Success**: ~94% (limited only by video availability)
 - **Processing Time**: 30-300 seconds (depends on video length)
+
+## 📈 **Enhanced Metadata Collection**
+
+### **What Metadata is Collected:**
+- **📺 Video Information**: Title, description, duration, publish date, category, tags, language
+- **📊 Engagement Metrics**: View count, like count, comment count, privacy status  
+- **👤 Channel Details**: Channel name, subscriber count, channel description, custom URL
+- **🔧 Technical Info**: Video quality (HD/SD), captions availability, licensing, embeddable status
+- **🎯 Processing Data**: Transcript length, generation timestamp, tool versions, content preservation rate
+
+### **Two Data Sources:**
+1. **YouTube Data API v3** (Enhanced): Provides comprehensive metadata including subscriber counts, engagement metrics, and detailed video information
+2. **yt-dlp Fallback**: Basic metadata extraction when API is unavailable or unconfigured
+
+### **Sample Metadata Output:**
+```
+===== VIDEO METADATA =====
+Title: Vibe coding in prod
+Creator: Anthropic
+Channel ID: UC_x5XG1OV2P6uZZ5FSM9Ttw
+Published: 2024-01-15 10:30:00 UTC
+Duration: 25:43
+Views: 15,847
+Likes: 432
+Comments: 28
+Channel Subscribers: 125,000
+Language: English
+Tags: coding, AI, development, productivity
+Description: Learn how to responsibly implement AI-assisted coding...
+Data Source: youtube_data_api
+==================================================
+Generated: 2024-08-03 21:30:15
+Tool: youtube_transcript.py v3.0
+==================================================
+
+[Transcript content follows...]
+```
 
 ## 📁 Project Structure
 
@@ -65,6 +113,7 @@ pip install -r requirements.txt
 ### **Dependencies Included:**
 - `yt-dlp==2025.7.21`: YouTube video/audio downloader
 - `openai-whisper==20231117`: AI transcription model
+- `google-api-python-client>=2.0.0`: YouTube Data API v3 client (for enhanced metadata)
 
 ### **Bot Protection Bypass:**
 - Uses manual browser cookies (youtube_cookies.txt)
@@ -98,17 +147,21 @@ python process_transcript.py "Video Title_Creator_transcript.txt"
 - **Language Preservation**: Keeps content in original language (Chinese, English, etc.)
 - **Automatic Chunking**: Handles super long videos (>40K characters) seamlessly
 - **Progress Tracking**: Real-time progress for all AI processing steps with percentage completion
+- **Metadata Integration**: Processed files include original video metadata and processing statistics
 
-### Chunking Configuration (.env):
+### Configuration (.env):
 ```bash
-# When to start chunking
-CHUNKING_THRESHOLD=40000
+# YouTube Data API v3 (Optional - for enhanced metadata)
+YOUTUBE_API_KEY=your_youtube_api_key_here
 
-# Size of each chunk
-CHUNK_SIZE=35000
+# OpenAI Settings (Required for AI processing)
+OPENAI_API_KEY=your_api_key_here
+OPENAI_MODEL=gpt-4o-mini
 
-# Overlap between chunks for context
-CHUNK_OVERLAP=500
+# Chunking Settings for Large Files
+CHUNKING_THRESHOLD=40000    # When to start chunking
+CHUNK_SIZE=35000           # Size of each chunk
+CHUNK_OVERLAP=500          # Overlap between chunks for context
 ```
 
 ### Performance by Video Length:
